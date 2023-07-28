@@ -1,13 +1,13 @@
 [package]
-name = "egui-controls"
+name = "bevy_egui_controls"
 version = "0.1.1"
 edition = "2021"
 license-file = "LICENSE"
 readme = "README.md"
 description = "Helps build a control panel with egui."
-authors = ["Aalekh Patel <aalekh.gwpeck.7998@icloud.com>"]
+authors = ["Aalekh Patel <aalekh.gwpeck.7998@icloud.com>", "Actually Happening"]
 repository = "https://github.com/aalekhpatel07/egui-controls"
-keywords = ["egui", "control-panel", "controls"]
+keywords = ["egui", "control-panel", "controls", "bevy", "bevy-egui", "bevy-egui-controls"]
 categories = ["gui", "game-development"]
 
 [lib]
@@ -25,4 +25,4 @@ syn = { version = "2.0.18", features = ["full", "fold", "extra-traits"] }
 proc-macro2 = "1.0.60"
 
 [dev-dependencies]
-eframe = { version = "0.22" }
+bevy_egui = "0.21.0"
