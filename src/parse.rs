@@ -107,24 +107,16 @@ pub fn expand(input: DeriveInput) -> TokenStream {
 			impl #struct_name {
 					pub fn ui(&mut self, ui: &mut ::bevy_egui::egui::Ui) -> ::bevy_egui::egui::Response {
 
-							::bevy_egui::egui::Grid::new(#grid_id)
-							.num_columns(3)
-							.spacing([40., 20.])
-							.striped(true)
-							.show(ui, |ui| {
-									// ui.heading(#setting_heading);
-									ui.heading(#value_heading);
-									ui.heading(#description_heading);
-									ui.end_row();
+						ui.with_layout(::bevy_egui::egui::Layout::top_down(::bevy_egui::egui::Align::Center), |ui| {
 									#(
 											{
-													// ui.label(stringify!(#field_names));
+												ui.horizontal_wrapped(|ui| {
 													ui.add(#field_widgets);
-													ui.vertical(|ui| ui.label(#field_docs));
-													ui.end_row();
+													ui.label(#field_docs);
+												});
 											}
 									)*
-							})
+						})
 							.response
 					}
 			}
