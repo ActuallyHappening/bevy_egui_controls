@@ -3,7 +3,8 @@ use proc_macro2::TokenStream as TokenStream2;
 
 use quote::{quote, ToTokens};
 use syn::{
-	Data, DataStruct, DeriveInput, Expr, ExprLit, Fields, Lit, Meta, MetaList, MetaNameValue,
+	Data, DataEnum, DataStruct, DeriveInput, Expr, ExprLit, Fields, Lit, Meta, MetaList,
+	MetaNameValue,
 };
 
 /// Parse struct fields into an iterator over the
@@ -69,9 +70,9 @@ fn parse_widgets_from_fields(fields: &Fields) -> impl Iterator<Item = TokenStrea
 									::bevy_egui::egui::TextEdit::singleline(&mut self.#name).hint_text("")
 							));
 						} else if ident == "bool" {
-							return Some(quote!{
+							return Some(quote! {
 									::bevy_egui::egui::Checkbox::without_text(&mut self.#name)
-							})
+							});
 						}
 						return None;
 					}
@@ -87,39 +88,51 @@ fn parse_widgets_from_fields(fields: &Fields) -> impl Iterator<Item = TokenStrea
 /// is the interactive form control, and the third field is the description
 /// of the field extracted from the doc comment.
 pub fn expand(input: DeriveInput) -> TokenStream {
-	let Data::Struct(DataStruct { fields, .. }) = &input.data else {
-		panic!("expected a struct");
-	};
+	match &input.data {
+		Data::Struct(DataStruct { fields, .. }) => {
+			let struct_name = &input.ident;
+			let field_docs = parse_doc_comments_from_fields(fields);
+			let field_widgets = parse_widgets_from_fields(fields);
 
-	let struct_name = &input.ident;
-	let grid_id = format!("{}__control-panel", input.ident);
-
-	let field_names = fields.iter().map(|field| &field.ident);
-	let field_docs = parse_doc_comments_from_fields(fields);
-	let field_widgets = parse_widgets_from_fields(fields);
-
-	let setting_heading = "Setting";
-	let value_heading = "Value";
-	let description_heading = "Description";
-
-	let expanded = quote! {
-
-			impl #struct_name {
-					pub fn ui(&mut self, ui: &mut ::bevy_egui::egui::Ui) -> ::bevy_egui::egui::Response {
-
-						ui.with_layout(::bevy_egui::egui::Layout::top_down(::bevy_egui::egui::Align::Center), |ui| {
-									#(
-											{
-												ui.horizontal_wrapped(|ui| {
-													ui.add(#field_widgets);
-													ui.label(#field_docs);
-												});
-											}
-									)*
-						})
-							.response
+			let expanded = quote! {
+					impl #struct_name {
+							pub fn ui(&mut self, ui: &mut ::bevy_egui::egui::Ui) -> ::bevy_egui::egui::Response {
+								ui.with_layout(::bevy_egui::egui::Layout::top_down(::bevy_egui::egui::Align::Min), |ui| {
+											#(
+													{
+														ui.horizontal_wrapped(|ui| {
+															ui.add(#field_widgets);
+															ui.label(#field_docs);
+														});
+													}
+											)*
+								})
+									.response
+							}
 					}
-			}
-	};
-	expanded.into()
+			};
+			expanded.into()
+		}
+		Data::Enum(DataEnum { .. }) => {
+			let enum_name = &input.ident;
+
+			let expanded = quote! {
+				impl #enum_name {
+					pub fn ui(&mut self, ui: &mut ::bevy_egui::egui::Ui) -> ::bevy_egui::egui::Response {
+						ui.with_layout(
+							::bevy_egui::egui::Layout::top_down(::bevy_egui::egui::Align::Min),
+							|ui| {
+								for variant in <#enum_name as ::strum::IntoEnumIterator>::iter() {
+									ui.selectable_value(self, variant, format!("{}", variant));
+								}
+							},
+						).response
+					}
+				}
+			};
+
+			expanded.into()
+		}
+		_ => panic!("expected a struct or enum"),
+	}
 }
